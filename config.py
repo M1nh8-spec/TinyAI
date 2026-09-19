@@ -12,9 +12,9 @@ class Config:
     d_ff: int = 768
     context_length: int = 256
     batch_size: int = 4
-    learning_rate: float = 2e-4
+    learning_rate: float = 1e-4
     dropout: float = 0.05
-    epochs: int = 1000
+    epochs: int = 500
     grad_accumulation: int = 1
     num_threads: int = 2
     num_workers: int = 0
@@ -32,7 +32,6 @@ CONFIGS = {
 def get_config(name="mini"):
     if name not in CONFIGS:
         raise ValueError(f"Unknown config {name}; choose {list(CONFIGS)}")
-    # Return a copy so command-line overrides do not mutate global defaults.
     return Config(**asdict(CONFIGS[name]))
 
 
