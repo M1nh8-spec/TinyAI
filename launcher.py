@@ -1,4 +1,4 @@
-"""One-command terminal launcher for TinyAI."""
+"""One-command launcher for TinyAI."""
 import argparse
 import os
 import subprocess
@@ -85,7 +85,6 @@ def main():
     train_if_needed(device)
     model, tok = load_model(device)
     print(f"TinyAI ready on {device}. Type !stop to exit.", flush=True)
-    history = []
     while True:
         try:
             prompt = input("You: ").strip()
@@ -97,18 +96,14 @@ def main():
             return
         if not prompt:
             continue
-        history.append(f"<USER> {prompt} <ASSISTANT>")
-        # Keep the entire recent dialogue inside the model's context budget.
-        max_chars = max(256, model.config.context_length * 3)
-        context = " ".join(history)[-max_chars:]
-        answer = generate(model, tok, context, device, max_new_tokens=120,
-                          temperature=.75, top_k=25, top_p=.9,
-                          repetition_penalty=1.18, frequency_penalty=.025)
-        if answer.startswith(context):
-            answer = answer[len(context):]
-        answer = answer.split("<USER>", 1)[0].strip()
+        # For this small model, a single-turn prompt is clearer than feeding
+        # malformed previous output back into the next generation.
+        context = f"<USER> {prompt} <ASSISTANT>"
+        answer = generate(model, tok, context, device, max_new_tokens=96,
+                          temperature=.45, top_k=8, top_p=.8,
+                          repetition_penalty=1.25, frequency_penalty=.08,
+                          greedy=True)
         print(f"AI: {answer or '[The model generated an empty continuation.]'}")
-        history.append(answer)
 
 
 if __name__ == "__main__":
