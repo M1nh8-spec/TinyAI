@@ -1,0 +1,6 @@
+[
+ {"direction":"en-vi","source":"Hello, how are you?","target":"Xin chào, bạn khỏe không?"},
+ {"direction":"vi-en","source":"Tôi đang học lập trình bằng Python.","target":"I am learning programming with Python."},
+ {"direction":"en-vi","source":"The computer is on the small table.","target":"Máy tính ở trên chiếc bàn nhỏ."},
+ {"direction":"vi-en","source":"Gia đình tôi đọc sách vào buổi tối.","target":"My family reads books in the evening."}
+]
