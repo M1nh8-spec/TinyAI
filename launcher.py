@@ -9,7 +9,8 @@ PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 VENV_DIR = os.path.join(PROJECT_DIR, "lib")
 REQUIREMENTS = os.path.join(PROJECT_DIR, "requirements.txt")
 DEFAULT_CONFIG = "mini"
-DEFAULT_EPOCHS = 40
+# More passes help this small from-scratch model fit the tiny example dataset.
+DEFAULT_EPOCHS = 200
 DEFAULT_CHECKPOINT = os.path.join(PROJECT_DIR, "checkpoints", "best.pt")
 
 
@@ -54,7 +55,7 @@ def choose_device(args):
 def train_if_needed(device):
     if os.path.isfile(DEFAULT_CHECKPOINT):
         return
-    print(f"No checkpoint found. Training the default {DEFAULT_CONFIG} model on {device}...", flush=True)
+    print(f"No checkpoint found. Training the default {DEFAULT_CONFIG} model for {DEFAULT_EPOCHS} epochs on {device}...", flush=True)
     result = subprocess.run([
         sys.executable, "train.py", "--config", DEFAULT_CONFIG,
         "--epochs", str(DEFAULT_EPOCHS), "--device", str(device),
@@ -96,8 +97,6 @@ def main():
             return
         if not prompt:
             continue
-        # For this small model, a single-turn prompt is clearer than feeding
-        # malformed previous output back into the next generation.
         context = f"<USER> {prompt} <ASSISTANT>"
         answer = generate(model, tok, context, device, max_new_tokens=96,
                           temperature=.45, top_k=8, top_p=.8,
