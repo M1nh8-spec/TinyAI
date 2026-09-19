@@ -8,8 +8,7 @@ import venv
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 VENV_DIR = os.path.join(PROJECT_DIR, "lib")
 REQUIREMENTS = os.path.join(PROJECT_DIR, "requirements.txt")
-DEFAULT_CONFIG = "mini"
-# More passes help this small from-scratch model fit the tiny example dataset.
+DEFAULT_CONFIG = "cpu"
 DEFAULT_EPOCHS = 500
 DEFAULT_CHECKPOINT = os.path.join(PROJECT_DIR, "checkpoints", "best.pt")
 
@@ -25,16 +24,13 @@ def ensure_local_environment():
     if not os.path.isfile(executable):
         print(f"Creating local virtual environment: {VENV_DIR}", flush=True)
         venv.EnvBuilder(with_pip=True, clear=False).create(VENV_DIR)
-    print("Checking/installing dependencies in lib ...", flush=True)
     result = subprocess.run([executable, "-m", "pip", "install", "-r", REQUIREMENTS], cwd=PROJECT_DIR)
     if result.returncode:
         raise SystemExit(result.returncode)
-    result = subprocess.run([executable, os.path.abspath(__file__), *sys.argv[1:]], cwd=PROJECT_DIR)
-    raise SystemExit(result.returncode)
+    raise SystemExit(subprocess.run([executable, os.path.abspath(__file__), *sys.argv[1:]], cwd=PROJECT_DIR).returncode)
 
 
 ensure_local_environment()
-
 import torch
 from config import get_config
 from generate import generate
@@ -47,20 +43,14 @@ def choose_device(args):
         if not torch.cuda.is_available():
             raise SystemExit("CUDA was requested, but no CUDA device is available.")
         return torch.device("cuda")
-    if args.cpu:
-        return torch.device("cpu")
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch.device("cpu" if args.cpu or not torch.cuda.is_available() else "cuda")
 
 
 def train_if_needed(device):
     if os.path.isfile(DEFAULT_CHECKPOINT):
         return
-    print(f"No checkpoint found. Training the default {DEFAULT_CONFIG} model for {DEFAULT_EPOCHS} epochs on {device}...", flush=True)
-    result = subprocess.run([
-        sys.executable, "train.py", "--config", DEFAULT_CONFIG,
-        "--epochs", str(DEFAULT_EPOCHS), "--device", str(device),
-        "--out", os.path.dirname(DEFAULT_CHECKPOINT)
-    ], cwd=PROJECT_DIR)
+    print(f"No checkpoint found. Training {DEFAULT_CONFIG} for {DEFAULT_EPOCHS} epochs on {device}...", flush=True)
+    result = subprocess.run([sys.executable, "train.py", "--config", DEFAULT_CONFIG, "--epochs", str(DEFAULT_EPOCHS), "--device", str(device), "--out", "checkpoints"], cwd=PROJECT_DIR)
     if result.returncode or not os.path.isfile(DEFAULT_CHECKPOINT):
         raise SystemExit("Training failed or did not create the expected checkpoint.")
 
@@ -77,7 +67,7 @@ def load_model(device):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train if needed, then run TinyAI.")
+    parser = argparse.ArgumentParser()
     devices = parser.add_mutually_exclusive_group()
     devices.add_argument("--cpu", action="store_true")
     devices.add_argument("--cuda", action="store_true")
@@ -95,14 +85,9 @@ def main():
         if prompt == "!stop":
             print("Goodbye.")
             return
-        if not prompt:
-            continue
-        context = f"<USER> {prompt} <ASSISTANT>"
-        answer = generate(model, tok, context, device, max_new_tokens=96,
-                          temperature=.45, top_k=8, top_p=.8,
-                          repetition_penalty=1.25, frequency_penalty=.08,
-                          greedy=True)
-        print(f"AI: {answer or '[The model generated an empty continuation.]'}")
+        if prompt:
+            answer = generate(model, tok, f"<USER> {prompt} <ASSISTANT>", device, max_new_tokens=96, temperature=.45, top_k=8, top_p=.8, repetition_penalty=1.25, frequency_penalty=.08, greedy=True)
+            print(f"AI: {answer or '[The model generated an empty continuation.]'}")
 
 
 if __name__ == "__main__":

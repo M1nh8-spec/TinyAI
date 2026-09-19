@@ -1,21 +1,22 @@
-"""Configurable settings for TinyAI's decoder Transformer."""
-from dataclasses import dataclass, asdict
+"""CPU-friendly configurations for TinyAI."""
+from dataclasses import asdict, dataclass
 import json
 
 
 @dataclass
 class Config:
     vocab_size: int = 512
-    d_model: int = 192
-    num_layers: int = 4
+    d_model: int = 384
+    num_layers: int = 6
     num_heads: int = 6
-    d_ff: int = 768
+    d_ff: int = 1536
     context_length: int = 256
-    batch_size: int = 4
-    learning_rate: float = 1e-4
+    batch_size: int = 2
+    learning_rate: float = 2e-4
+    min_learning_rate: float = 2e-5
     dropout: float = 0.05
     epochs: int = 500
-    grad_accumulation: int = 1
+    grad_accumulation: int = 8
     num_threads: int = 2
     num_workers: int = 0
     device: str = "auto"
@@ -23,13 +24,18 @@ class Config:
 
 
 CONFIGS = {
-    "tiny": Config(d_model=96, num_layers=2, num_heads=4, d_ff=384, context_length=128, batch_size=8),
+    # About 25M parameters with the default character vocabulary: practical for 8GB RAM.
+    "cpu": Config(),
+    "tiny": Config(d_model=192, num_layers=4, num_heads=6, d_ff=768,
+                   context_length=128, batch_size=4, grad_accumulation=4),
     "mini": Config(),
-    "large_mini": Config(d_model=256, num_layers=6, num_heads=8, d_ff=1024, context_length=256, batch_size=2),
+    # Larger, but not recommended for the user's 8GB machine.
+    "large_mini": Config(d_model=512, num_layers=8, num_heads=8, d_ff=2048,
+                          context_length=256, batch_size=1, grad_accumulation=16),
 }
 
 
-def get_config(name="mini"):
+def get_config(name="cpu"):
     if name not in CONFIGS:
         raise ValueError(f"Unknown config {name}; choose {list(CONFIGS)}")
     return Config(**asdict(CONFIGS[name]))
