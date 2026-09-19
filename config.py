@@ -24,12 +24,10 @@ class Config:
 
 
 CONFIGS = {
-    # About 25M parameters with the default character vocabulary: practical for 8GB RAM.
     "cpu": Config(),
     "tiny": Config(d_model=192, num_layers=4, num_heads=6, d_ff=768,
                    context_length=128, batch_size=4, grad_accumulation=4),
     "mini": Config(),
-    # Larger, but not recommended for the user's 8GB machine.
     "large_mini": Config(d_model=512, num_layers=8, num_heads=8, d_ff=2048,
                           context_length=256, batch_size=1, grad_accumulation=16),
 }
