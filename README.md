@@ -37,15 +37,26 @@ Install dependencies:
 python -m pip install -r requirements.txt
 ```
 
-## Quick start: one command
+## Run TinyAI
 
-Run the terminal chatbot:
+For normal users, run one command:
 
 ```bash
 python launcher.py
 ```
 
-`launcher.py` automatically checks for `checkpoints/best.pt`. If it does not exist, it runs the normal training pipeline first using the default Mini configuration and 20 epochs. After training or loading the checkpoint, it starts a continuous terminal conversation:
+The launcher has training settings built into `launcher.py`. It automatically checks for `checkpoints/best.pt`. If the checkpoint does not exist, it runs the default `train.py` pipeline using the Mini configuration for the default number of epochs, then starts the terminal chatbot. No separate training command or configuration command is required.
+
+The only command-line choice is the compute device:
+
+```bash
+python launcher.py --cpu
+python launcher.py --cuda
+```
+
+With no switch, TinyAI uses CUDA when it is available and otherwise uses the CPU. `--cuda` stops with a clear error if CUDA is unavailable. `--cpu` forces both automatic training and inference to use the CPU.
+
+After startup:
 
 ```text
 TinyAI ready on cpu. Type !stop to exit.
@@ -54,85 +65,17 @@ You:
 
 Type a message and press Enter. The generated response is printed, followed by another `You:` prompt. Type `!stop` to exit. `Ctrl+C` and end-of-file also end the session cleanly.
 
-The default automatic training can take time on a low-power CPU. To change the number of automatic training epochs:
+The first launch may take time because the model must train before it can answer. Later launches reuse `checkpoints/best.pt` and do not train again unless that file is removed.
 
-```bash
-python launcher.py --train-epochs 30
-```
+## Run the development checks
 
-To force CPU execution:
-
-```bash
-python launcher.py --device cpu
-```
-
-To request CUDA when available:
-
-```bash
-python launcher.py --device cuda
-```
-
-## Run the benchmark first
-
-Before a larger training run, test forward propagation, backward propagation, parameter updates, and overfitting behavior on a tiny synthetic batch:
+Developers can run the tiny forward/backward benchmark directly:
 
 ```bash
 python benchmark.py --steps 30
 ```
 
-The script prints measurements from the machine where it is actually run. No benchmark values are claimed in this README because hardware and execution time depend on the user's computer.
-
-## Manual training
-
-You can train without the launcher:
-
-```bash
-python train.py --config tiny --epochs 30
-python train.py --config mini --epochs 20
-```
-
-The available configurations are:
-
-- `tiny`: smaller and faster for testing
-- `mini`: default CPU-oriented configuration
-- `large_mini`: larger experiment; it may be slow on an older CPU
-
-Checkpoints are written to:
-
-```text
-checkpoints/last.pt
-checkpoints/best.pt
-```
-
-Resume an interrupted run:
-
-```bash
-python train.py --config mini --resume checkpoints/last.pt
-```
-
-Training prints epoch, training loss, validation loss, and learning rate. The checkpoint stores model weights, optimizer state, epoch, step, configuration, tokenizer vocabulary, and metrics.
-
-## Other generation and evaluation commands
-
-Generate one response from a prompt:
-
-```bash
-python generate.py --checkpoint checkpoints/best.pt --prompt "<USER> Could you tell me your name? <ASSISTANT>"
-```
-
-Start the older interactive generation script:
-
-```bash
-python generate.py --checkpoint checkpoints/best.pt
-```
-
-Evaluate validation loss and perplexity:
-
-```bash
-python evaluate.py --checkpoint checkpoints/best.pt
-```
-
-Generation supports temperature, top-k, top-p, and maximum generated tokens through the `generate()` function and its command-line options.
+This is optional and is not needed for normal users. It prints measurements from the machine where it is actually run. No benchmark values are claimed in this README because hardware and execution time depend on the user's computer.
 
 ## Dataset
 
@@ -160,53 +103,14 @@ The current dataset is small and mostly hand-written. It is not a large real-wor
 
 ## Architecture
 
-`model.py` implements:
-
-- token embeddings;
-- learned positional embeddings;
-- multi-head self-attention;
-- a lower-triangular causal attention mask;
-- pre-normalized residual connections;
-- GELU feed-forward networks;
-- layer normalization;
-- tied output projection;
-- logits and cross-entropy loss.
+`model.py` implements token embeddings, learned positional embeddings, multi-head self-attention, a lower-triangular causal attention mask, pre-normalized residual connections, GELU feed-forward networks, layer normalization, a tied output projection, logits, and cross-entropy loss.
 
 At inference time, the model generates autoregressively: it tokenizes the prompt, predicts logits for the next token, applies sampling, appends the sampled token, and repeats. Responses are not selected from the dataset and are not chosen by keyword or intent rules. The only special command is `!stop`, which exits the terminal loop.
 
 The tokenizer in `tokenizer.py` is built from the project data and works at Unicode character level. This keeps Vietnamese tone marks and characters such as `ă`, `â`, `ê`, `ô`, `ơ`, and `ư` intact. Character tokenization is simple and robust, but less compact than subword tokenization, so context is consumed more quickly.
 
-## Parameter and memory estimates
-
-The model configuration exposes vocabulary size, model width, number of layers, number of heads, feed-forward width, context length, batch size, learning rate, dropout, CPU threads, and DataLoader workers.
-
-Training prints the actual total and trainable parameter counts using `MiniTransformer.parameter_report()`, along with estimates for parameter, Adam optimizer, and training memory. These are estimates based on tensor sizes, not measurements of peak process RAM.
-
-Use modest CPU settings on an older computer:
-
-```text
-num_threads = 2
-num_workers = 0
-```
-
-Reduce batch size, context length, model width, or layer count if training is too slow or memory-heavy.
-
 ## Honest status and limitations
 
-### Implemented
+The project implements a real randomly initialized Transformer, CPU-first PyTorch training, Vietnamese and English sample data, Unicode tokenization, cross-entropy training, validation/checkpoints, autoregressive sampling, and the one-command terminal launcher.
 
-- From-scratch randomly initialized Transformer
-- CPU-first PyTorch training
-- Vietnamese and English sample data
-- Unicode character tokenizer
-- Cross-entropy training with backpropagation
-- Validation split and checkpoint/resume support
-- Autoregressive sampling
-- Terminal launcher with automatic first training run
-- Tiny forward/backward benchmark
-
-### Not claimed without running the code
-
-Actual loss values, training speed, peak RAM, CPU duration, generalization quality, and translation quality depend on the target machine and the training run. They are **not tested or fabricated here**. Run `benchmark.py`, `train.py`, and `evaluate.py` locally to obtain those results.
-
-Because the sample dataset is small, the model may memorize examples, produce malformed text, repeat tokens, or fail on unseen prompts. Successful training and a decreasing loss do not prove broad language understanding.
+Actual loss values, training speed, peak RAM, CPU duration, generalization quality, and translation quality depend on the target machine and the training run. They are **not tested or fabricated here**. Because the sample dataset is small, the model may memorize examples, produce malformed text, repeat tokens, or fail on unseen prompts. Successful training and a decreasing loss do not prove broad language understanding.
