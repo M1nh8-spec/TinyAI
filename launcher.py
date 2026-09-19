@@ -10,7 +10,7 @@ VENV_DIR = os.path.join(PROJECT_DIR, "lib")
 REQUIREMENTS = os.path.join(PROJECT_DIR, "requirements.txt")
 DEFAULT_CONFIG = "mini"
 # More passes help this small from-scratch model fit the tiny example dataset.
-DEFAULT_EPOCHS = 200
+DEFAULT_EPOCHS = 500
 DEFAULT_CHECKPOINT = os.path.join(PROJECT_DIR, "checkpoints", "best.pt")
 
 
