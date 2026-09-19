@@ -1,8 +1,9 @@
-"""Conversation examples converted into overlapping language-model windows."""
+"""Dataset loading and deterministic augmentation for TinyAI."""
 import json
 import random
 import torch
 from torch.utils.data import Dataset
+from data.generated_examples import generated_records
 
 
 class ConversationDataset(Dataset):
@@ -18,7 +19,6 @@ class ConversationDataset(Dataset):
             ids = tokenizer.encode(text, add_eos=True)
             if len(ids) < 2:
                 continue
-            # Sliding windows create more useful examples than truncating each conversation.
             for start in range(0, max(1, len(ids) - 1), stride):
                 window = ids[start:start + context_length + 1]
                 if len(window) > 1:
@@ -37,15 +37,17 @@ class ConversationDataset(Dataset):
         return torch.tensor(x, dtype=torch.long), torch.tensor(y, dtype=torch.long)
 
 
-def load_records(path):
+def load_records(path, include_generated=True):
     with open(path, encoding="utf-8") as f:
         records = json.load(f)
-    return [r for r in records if r.get("language", "en").lower() == "en"]
+    records = [r for r in records if r.get("language", "en").lower() == "en"]
+    if include_generated:
+        records.extend(generated_records())
+    return records
 
 
 def split_records(records, fraction=0.15, seed=1337):
     records = list(records)
     random.Random(seed).shuffle(records)
-    # Keep a validation record when the dataset is very small.
     cut = max(1, int(len(records) * fraction))
     return records[cut:], records[:cut]
