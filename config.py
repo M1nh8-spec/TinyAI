@@ -1,4 +1,4 @@
-"""CPU-friendly configurations for TinyAI."""
+"""Portable hardware-aware configurations for TinyAI."""
 from dataclasses import asdict, dataclass
 import json
 
@@ -24,6 +24,7 @@ class Config:
 
 
 CONFIGS = {
+    # Safe baseline for old dual-core CPUs and 8GB RAM.
     "cpu": Config(),
     "tiny": Config(d_model=192, num_layers=4, num_heads=6, d_ff=768,
                    context_length=128, batch_size=4, grad_accumulation=4),
@@ -33,9 +34,53 @@ CONFIGS = {
 }
 
 
-def get_config(name="cpu"):
+def _ram_gb():
+    try:
+        import ctypes
+        class Memory(ctypes.Structure):
+            _fields_ = [("length", ctypes.c_ulong), ("total", ctypes.c_ulonglong),
+                        ("available", ctypes.c_ulonglong), ("used", ctypes.c_ulonglong),
+                        ("free", ctypes.c_ulonglong), ("total_page", ctypes.c_ulonglong),
+                        ("free_page", ctypes.c_ulonglong), ("total_virtual", ctypes.c_ulonglong),
+                        ("free_virtual", ctypes.c_ulonglong), ("free_extended", ctypes.c_ulonglong)]
+        m = Memory()
+        m.length = ctypes.sizeof(Memory)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m)):
+            return m.total / (1024 ** 3)
+    except (AttributeError, OSError, TypeError):
+        pass
+    try:
+        pages = __import__("os").sysconf("SC_PHYS_PAGES")
+        size = __import__("os").sysconf("SC_PAGE_SIZE")
+        return pages * size / (1024 ** 3)
+    except (AttributeError, ValueError, OSError):
+        return 8.0
+
+
+def hardware_config():
+    """Select a conservative model automatically on any supported computer."""
+    import os
+    cores = os.cpu_count() or 2
+    ram = _ram_gb()
+    if ram < 6 or cores <= 2:
+        name = "tiny"
+    elif ram >= 16 and cores >= 8:
+        name = "large_mini"
+    else:
+        name = "cpu"
+    cfg = Config(**asdict(CONFIGS[name]))
+    cfg.num_threads = max(1, min(cores, 8))
+    if ram < 10:
+        cfg.batch_size = 1
+        cfg.grad_accumulation = max(cfg.grad_accumulation, 8)
+    return name, cfg, cores, ram
+
+
+def get_config(name="auto"):
+    if name == "auto":
+        return hardware_config()[1]
     if name not in CONFIGS:
-        raise ValueError(f"Unknown config {name}; choose {list(CONFIGS)}")
+        raise ValueError(f"Unknown config {name}; choose auto or {list(CONFIGS)}")
     return Config(**asdict(CONFIGS[name]))
 
 

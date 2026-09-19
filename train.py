@@ -1,11 +1,10 @@
-"""Train TinyAI with optimized CPU kernels and stable AdamW training."""
+"""Train TinyAI with automatic hardware tuning."""
 import argparse
-import math
 import os
 import torch
 from torch.utils.data import DataLoader
 
-from config import get_config
+from config import get_config, hardware_config
 from tokenizer import CharTokenizer
 from dataset import load_records, split_records, ConversationDataset
 from model import MiniTransformer
@@ -35,17 +34,24 @@ def run_epoch(model, loader, optimizer, device, accumulation, train=True):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Train TinyAI efficiently on CPU or CUDA.")
-    ap.add_argument("--config", default="cpu")
+    ap = argparse.ArgumentParser(description="Train TinyAI with automatic CPU/GPU tuning.")
+    ap.add_argument("--config", choices=["auto", "cpu", "tiny", "mini", "large_mini"], default="auto")
     ap.add_argument("--data", default="data/conversations.json")
     ap.add_argument("--epochs", type=int)
     ap.add_argument("--device")
+    ap.add_argument("--threads", type=int, help="Override automatic CPU thread selection")
     ap.add_argument("--out", default="checkpoints")
     ap.add_argument("--resume")
     args = ap.parse_args()
 
-    config = get_config(args.config)
+    if args.config == "auto":
+        selected, config, cores, ram = hardware_config()
+        print(f"auto profile={selected} cpu_threads={cores} ram={ram:.1f}GB")
+    else:
+        selected, config = args.config, get_config(args.config)
     config.epochs = args.epochs or config.epochs
+    if args.threads:
+        config.num_threads = max(1, args.threads)
     seed_all(config.seed)
     set_cpu_threads(config.num_threads)
     if hasattr(torch, "set_float32_matmul_precision"):
@@ -61,35 +67,27 @@ def main():
                               config.batch_size, shuffle=True, num_workers=config.num_workers)
     valid_loader = DataLoader(ConversationDataset(valid_records, tok, config.context_length),
                               config.batch_size, shuffle=False, num_workers=config.num_workers)
-
     model = MiniTransformer(config).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.learning_rate,
                                   weight_decay=0.1, betas=(0.9, 0.95), foreach=True)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=max(1, config.epochs), eta_min=config.min_learning_rate)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(1, config.epochs), eta_min=config.min_learning_rate)
     start = 0
     if args.resume:
         start = load_checkpoint(args.resume, model, optimizer, device).get("epoch", 0) + 1
-
     print("device", device, "parameters", MiniTransformer.parameter_report(model))
-    print("optimizer AdamW; threads", torch.get_num_threads(),
-          "; gradient accumulation", config.grad_accumulation)
+    print("profile", selected, "threads", torch.get_num_threads(), "gradient accumulation", config.grad_accumulation)
     os.makedirs(args.out, exist_ok=True)
     best = float("inf")
     for epoch in range(start, config.epochs):
-        train_loss = run_epoch(model, train_loader, optimizer, device,
-                               config.grad_accumulation, True)
-        valid_loss = run_epoch(model, valid_loader, optimizer, device,
-                               config.grad_accumulation, False)
+        train_loss = run_epoch(model, train_loader, optimizer, device, config.grad_accumulation, True)
+        valid_loss = run_epoch(model, valid_loader, optimizer, device, config.grad_accumulation, False)
         lr = optimizer.param_groups[0]["lr"]
         print(f"epoch={epoch} train_loss={train_loss:.4f} val_loss={valid_loss:.4f} lr={lr:.8f}")
         metrics = {"train_loss": train_loss, "val_loss": valid_loss}
-        save_checkpoint(os.path.join(args.out, "last.pt"), model, optimizer,
-                        epoch, epoch * len(train_loader), tok, config, metrics)
+        save_checkpoint(os.path.join(args.out, "last.pt"), model, optimizer, epoch, epoch * len(train_loader), tok, config, metrics)
         if valid_loss < best:
             best = valid_loss
-            save_checkpoint(os.path.join(args.out, "best.pt"), model, optimizer,
-                            epoch, epoch * len(train_loader), tok, config, metrics)
+            save_checkpoint(os.path.join(args.out, "best.pt"), model, optimizer, epoch, epoch * len(train_loader), tok, config, metrics)
         scheduler.step()
 
 

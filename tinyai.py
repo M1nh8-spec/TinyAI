@@ -1,4 +1,4 @@
-"""One-command launcher for TinyAI."""
+"""One-command, hardware-aware TinyAI launcher."""
 import argparse
 import os
 import subprocess
@@ -8,7 +8,7 @@ import venv
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 VENV_DIR = os.path.join(PROJECT_DIR, "lib")
 REQUIREMENTS = os.path.join(PROJECT_DIR, "requirements.txt")
-DEFAULT_CONFIG = "cpu"
+DEFAULT_CONFIG = "auto"
 DEFAULT_EPOCHS = 500
 DEFAULT_CHECKPOINT = os.path.join(PROJECT_DIR, "checkpoints", "best.pt")
 
@@ -32,7 +32,7 @@ def ensure_local_environment():
 
 ensure_local_environment()
 import torch
-from config import get_config
+from config import get_config, hardware_config
 from generate import generate
 from model import MiniTransformer
 from tokenizer import CharTokenizer
@@ -49,18 +49,15 @@ def choose_device(args):
 def train_if_needed(device):
     if os.path.isfile(DEFAULT_CHECKPOINT):
         return
-    print(f"No checkpoint found. Training {DEFAULT_CONFIG} for {DEFAULT_EPOCHS} epochs on {device}...", flush=True)
-    result = subprocess.run([
-        sys.executable, "train.py", "--config", DEFAULT_CONFIG,
-        "--epochs", str(DEFAULT_EPOCHS), "--device", str(device), "--out", "checkpoints"
-    ], cwd=PROJECT_DIR)
+    print(f"No checkpoint found. Auto-selecting hardware profile and training for {DEFAULT_EPOCHS} epochs on {device}...", flush=True)
+    result = subprocess.run([sys.executable, "train.py", "--config", DEFAULT_CONFIG, "--epochs", str(DEFAULT_EPOCHS), "--device", str(device), "--out", "checkpoints"], cwd=PROJECT_DIR)
     if result.returncode or not os.path.isfile(DEFAULT_CHECKPOINT):
         raise SystemExit("Training failed or did not create the expected checkpoint.")
 
 
 def load_model(device):
     checkpoint = torch.load(DEFAULT_CHECKPOINT, map_location=device)
-    config = get_config(DEFAULT_CONFIG)
+    config = get_config("auto")
     config.__dict__.update(checkpoint["config"])
     tok = CharTokenizer(checkpoint["tokenizer"])
     model = MiniTransformer(config).to(device)
@@ -89,11 +86,7 @@ def main():
             print("Goodbye.")
             return
         if prompt:
-            answer = generate(
-                model, tok, f"<USER> {prompt} <ASSISTANT>", device,
-                max_new_tokens=96, temperature=.45, top_k=8, top_p=.8,
-                repetition_penalty=1.25, frequency_penalty=.08, greedy=True
-            )
+            answer = generate(model, tok, f"<USER> {prompt} <ASSISTANT>", device, max_new_tokens=96, temperature=.45, top_k=8, top_p=.8, repetition_penalty=1.25, frequency_penalty=.08, greedy=True)
             print(f"AI: {answer or '[The model generated an empty continuation.]'}")
 
 
