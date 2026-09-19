@@ -1,0 +1,6 @@
+# Local virtual environment and generated runtime files
+lib/
+.venv/
+__pycache__/
+*.pyc
+checkpoints/
