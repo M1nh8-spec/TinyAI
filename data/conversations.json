@@ -1,10 +1,62 @@
 [
- {"language":"en","conversation":[{"role":"user","text":"Hello, how are you today?"},{"role":"assistant","text":"I am a small neural chatbot learning from our conversation examples."},{"role":"user","text":"Could you tell me your name?"},{"role":"assistant","text":"You can call me Tiny, an educational Transformer."}]},
- {"language":"vi","conversation":[{"role":"user","text":"Xin chào, hôm nay bạn khỏe không?"},{"role":"assistant","text":"Mình là một chatbot thần kinh nhỏ đang học từ dữ liệu hội thoại."},{"role":"user","text":"Bạn có thể giúp mình không?"},{"role":"assistant","text":"Mình có thể thử trả lời các câu hỏi đơn giản bằng tiếng Việt."}]},
- {"language":"en","conversation":[{"role":"user","text":"What color is the sky?"},{"role":"assistant","text":"On a clear day, the sky often looks blue."},{"role":"user","text":"What is two plus three?"},{"role":"assistant","text":"Two plus three is five in this simple example."}]},
- {"language":"vi","conversation":[{"role":"user","text":"Bầu trời có màu gì?"},{"role":"assistant","text":"Vào ngày quang đãng, bầu trời thường có màu xanh."},{"role":"user","text":"Hai cộng ba bằng mấy?"},{"role":"assistant","text":"Hai cộng ba bằng năm trong ví dụ đơn giản này."}]},
- {"language":"en","conversation":[{"role":"user","text":"Good morning. I am learning Python."},{"role":"assistant","text":"Python is a programming language used for many kinds of computer programs."},{"role":"user","text":"Thank you, good night."},{"role":"assistant","text":"You are welcome. Have a peaceful night."}]},
- {"language":"vi","conversation":[{"role":"user","text":"Chào buổi sáng. Mình đang học lập trình."},{"role":"assistant","text":"Lập trình là cách viết hướng dẫn để máy tính thực hiện công việc."},{"role":"user","text":"Cảm ơn, chúc ngủ ngon."},{"role":"assistant","text":"Không có gì. Chúc bạn ngủ ngon."}]},
- {"language":"en","conversation":[{"role":"user","text":"Please translate: The family uses a computer."},{"role":"assistant","text":"Gia đình sử dụng một chiếc máy tính."},{"role":"user","text":"Translate this: Tôi thích đọc sách."},{"role":"assistant","text":"I like reading books."}]},
- {"language":"vi","conversation":[{"role":"user","text":"Đếm từ một đến ba."},{"role":"assistant","text":"Một, hai, ba."},{"role":"user","text":"Tạm biệt và hẹn gặp lại."},{"role":"assistant","text":"Tạm biệt, chúc bạn một ngày tốt lành."}]}
+  {
+    "language": "en",
+    "conversation": [
+      {"role": "user", "text": "Hello, how are you today?"},
+      {"role": "assistant", "text": "I am doing well. I am a small English language model learning from conversation examples."},
+      {"role": "user", "text": "What can you do?"},
+      {"role": "assistant", "text": "I can answer simple questions, explain basic ideas, and practice conversation."}
+    ]
+  },
+  {
+    "language": "en",
+    "conversation": [
+      {"role": "user", "text": "What color is the sky?"},
+      {"role": "assistant", "text": "On a clear day, the sky often looks blue."},
+      {"role": "user", "text": "What is two plus three?"},
+      {"role": "assistant", "text": "Two plus three equals five."},
+      {"role": "user", "text": "Why?"},
+      {"role": "assistant", "text": "Because adding three to two gives five in basic arithmetic."}
+    ]
+  },
+  {
+    "language": "en",
+    "conversation": [
+      {"role": "user", "text": "Good morning. I am learning Python."},
+      {"role": "assistant", "text": "Python is a programming language used to build scripts, applications, and tools."},
+      {"role": "user", "text": "What is a variable?"},
+      {"role": "assistant", "text": "A variable is a name that refers to a value stored by a program."},
+      {"role": "user", "text": "Give me a simple example."},
+      {"role": "assistant", "text": "For example, name = \"Alex\" stores the text Alex in a variable called name."}
+    ]
+  },
+  {
+    "language": "en",
+    "conversation": [
+      {"role": "user", "text": "Tell me a short story."},
+      {"role": "assistant", "text": "A small bird found a bright seed beneath an old tree. It planted the seed, cared for it, and soon a tall tree gave shade to the whole garden."},
+      {"role": "user", "text": "What is the lesson?"},
+      {"role": "assistant", "text": "Small actions can create something valuable when we are patient and consistent."}
+    ]
+  },
+  {
+    "language": "en",
+    "conversation": [
+      {"role": "user", "text": "Please translate: The family uses a computer."},
+      {"role": "assistant", "text": "The sentence is already in English. It says that the family uses a computer."},
+      {"role": "user", "text": "Can you explain it more simply?"},
+      {"role": "assistant", "text": "It means the family works or does other activities with a computer."}
+    ]
+  },
+  {
+    "language": "en",
+    "conversation": [
+      {"role": "user", "text": "Are you okay?"},
+      {"role": "assistant", "text": "Yes, thank you. I am ready to help with a question or conversation."},
+      {"role": "user", "text": "I feel sad."},
+      {"role": "assistant", "text": "I am sorry you are feeling sad. Talking with someone you trust may help, and you deserve support."},
+      {"role": "user", "text": "Goodbye."},
+      {"role": "assistant", "text": "Goodbye. Take care and come back whenever you want to talk."}
+    ]
+  }
 ]
